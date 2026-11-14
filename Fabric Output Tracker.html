@@ -1,0 +1,892 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Fabric Output Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F1F3F6; --surface:#FFFFFF; --ink:#15202B; --muted:#5A6676; --line:#D7DDE5;
+  --accent:#2B4A8B; --accent-ink:#FFFFFF; --chalk:#E3A81D;
+  --good:#1F7A4D; --warn:#A35F00; --bad:#B3261E;
+  --font-display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --font-body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E151E; --surface:#16202C; --ink:#E7ECF2; --muted:#97A4B4; --line:#2A3846;
+    --accent:#7FA2E8; --accent-ink:#0E151E; --chalk:#F0BE45;
+    --good:#52C68A; --warn:#E8A33D; --bad:#FF8A80; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E151E; --surface:#16202C; --ink:#E7ECF2; --muted:#97A4B4; --line:#2A3846;
+  --accent:#7FA2E8; --accent-ink:#0E151E; --chalk:#F0BE45;
+  --good:#52C68A; --warn:#E8A33D; --bad:#FF8A80; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 0;
+}
+h1,h2,h3,h4,p{margin:0}
+.wrap{max-width:1040px;margin:0 auto}
+.top{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding-block:18px 0}
+.brand{display:flex;align-items:center;gap:11px;color:var(--ink);text-decoration:none}
+.brand svg{flex:none}
+.brand span{font-family:var(--font-display);font-weight:700;font-size:27px;letter-spacing:.01em;line-height:1}
+.store{font-size:12.5px;color:var(--muted);border:1px solid var(--line);background:var(--surface);padding:3px 10px;border-radius:999px;white-space:nowrap}
+.store b{color:var(--ink);font-weight:600}
+nav.tabs{display:flex;gap:2px;margin-top:14px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav.tabs a{padding:10px 15px;font-weight:600;color:var(--muted);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+nav.tabs a:hover{color:var(--ink)}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--chalk)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding-top:24px;padding-bottom:40px;display:flex;flex-direction:column;gap:18px}
+.view{display:flex;flex-direction:column;gap:18px}
+.head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.head h2{font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:.01em;line-height:1.1}
+.inline{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:14px}
+.muted{color:var(--muted)}
+.help{margin:10px 0 0;color:var(--muted);font-size:13px;max-width:62ch}
+.note{border:1px solid var(--line);border-left:4px solid var(--chalk);background:var(--surface);padding:10px 14px;font-size:14px}
+
+.hero{padding:26px 0 34px;border-bottom:2px dashed var(--chalk)}
+.hero h1{font-family:var(--font-display);font-weight:700;font-size:clamp(44px,8vw,76px);line-height:.96;letter-spacing:.005em;max-width:12ch}
+.hero p{max-width:60ch;font-size:17px;color:var(--muted);margin:18px 0 24px}
+.hero .row{gap:12px}
+.band{display:flex;flex-direction:column;gap:14px}
+.band h2,.sec h2{font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:.01em;line-height:1.1}
+.sec{display:flex;flex-direction:column;gap:14px;padding-top:12px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:26px}
+.cols>div{border-top:3px solid var(--ink);padding-top:12px;min-width:0}
+.cols h3{font-family:var(--font-display);font-weight:600;font-size:21px;letter-spacing:.02em;margin-bottom:6px}
+.cols p{color:var(--muted)}
+.prose{max-width:68ch;color:var(--ink)}
+.prose+.prose{margin-top:10px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));background:var(--surface);border:1px solid var(--line)}
+.kpi{padding:16px 18px;border-left:1px solid var(--line);min-width:0}
+.kpi:first-child{border-left:0}
+.kpi .lab{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.kpi .num{font-family:var(--font-mono);font-size:32px;font-weight:500;line-height:1.2;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+@media (max-width:640px){.kpi{border-left:0;border-top:1px solid var(--line)}.kpi:first-child{border-top:0}}
+
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 9px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.pill.good{color:var(--good)}.pill.warn{color:var(--warn)}.pill.bad{color:var(--bad)}.pill.plain{color:var(--muted)}
+
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+.panel h3{font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.02em;margin-bottom:10px}
+.chartbox{width:100%;min-height:120px}
+svg.chart{display:block;width:100%;height:auto}
+svg .grid{stroke:var(--line);stroke-width:1}
+svg .ax{fill:var(--muted);font:11px var(--font-mono)}
+svg .ln{fill:none;stroke:var(--accent);stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round}
+svg .pt{fill:var(--accent);stroke:var(--surface);stroke-width:1.5}
+svg .pt.low{fill:var(--bad)}
+svg .ref{stroke:var(--bad);stroke-width:1.25;stroke-dasharray:5 4}
+svg .avg{stroke:var(--muted);stroke-width:1.25;stroke-dasharray:5 4}
+svg .reflab{fill:var(--bad);font:11px var(--font-mono)}
+svg .avglab{fill:var(--muted);font:11px var(--font-mono)}
+svg .val{fill:var(--ink);font:600 12px var(--font-mono)}
+
+.scroll{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl th.n{text-align:right}
+.tbl tr.flag td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+.tbl .acts{white-space:nowrap;text-align:right}
+.flags{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.flags li{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.flags li:last-child{border-bottom:0}
+.flags .d{font-family:var(--font-mono);font-size:13px;color:var(--muted);min-width:58px}
+.flags .k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--bad);min-width:62px}
+
+form .grid2,.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:13px;font-weight:600}
+.field small{color:var(--muted);font-size:12.5px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:9px 10px;min-height:42px;width:100%;min-width:0}
+input[type=number]{font-family:var(--font-mono)}
+.btn{font:inherit;font-weight:600;border-radius:4px;padding:9px 16px;min-height:42px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);text-decoration:none;display:inline-flex;align-items:center}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.small{min-height:32px;padding:3px 10px;font-size:13px}
+.btn.danger{border-color:var(--bad);color:var(--bad);background:transparent}
+.btn.danger.armed{background:var(--bad);color:var(--surface)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:16px}
+.calc>div{background:var(--surface);padding:10px 14px}
+.calc .lab{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.calc .v{font-family:var(--font-mono);font-size:20px;font-variant-numeric:tabular-nums}
+.err{color:var(--bad);font-size:14px;min-height:20px;margin:10px 0 0}
+.listrow{display:grid;grid-template-columns:minmax(0,1fr) 110px auto;gap:10px;align-items:center;margin-bottom:8px}
+.listrow.one{grid-template-columns:minmax(0,1fr) auto}
+.filters{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
+@media (max-width:560px){.filters{grid-template-columns:minmax(0,1fr)}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:4px;font-size:14px;max-width:calc(100vw - 32px);z-index:20}
+textarea.csv{font-family:var(--font-mono);font-size:12px;min-height:160px}
+
+.hist{list-style:none;margin:0;padding:0}
+.hist>li{padding:14px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.hist>li:last-child{border-bottom:0}
+.hmeta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;color:var(--muted)}
+.hmeta .when{font-family:var(--font-mono);font-size:12.5px;color:var(--ink)}
+.hlabel{font-weight:600}
+.hist details{font-size:14px}
+.hist summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px;width:max-content}
+.hist .ch{margin-top:8px;width:100%;max-width:560px}
+.hist .ch td,.hist .ch th{padding:6px 10px}
+.hist .snap{margin-top:8px;color:var(--muted)}
+.hist .from{color:var(--bad)}
+.hist .to{color:var(--good)}
+.foot{border-top:1px solid var(--line);padding-block:20px 28px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:6px 24px;justify-content:space-between}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#home" aria-label="Fabric Output Tracker, home">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="2" y="2" width="26" height="26" rx="3" fill="var(--accent)"/><rect x="7" y="7" width="16" height="16" rx="1.5" fill="none" stroke="var(--chalk)" stroke-width="1.6" stroke-dasharray="3 2.4"/></svg>
+      <span>Fabric Output Tracker</span>
+    </a>
+    <div id="store" class="store">Starting…</div>
+  </header>
+  <nav class="tabs" aria-label="Pages">
+    <a id="t-home" href="#home">Home</a>
+    <a id="t-dashboard" href="#dashboard">Dashboard</a>
+    <a id="t-log" href="#log">Add entry</a>
+    <a id="t-records" href="#records">Records</a>
+    <a id="t-history" href="#history">History</a>
+    <a id="t-setup" href="#setup">Setup</a>
+  </nav>
+
+  <main>
+    <section id="v-home" class="view">
+      <div class="hero">
+        <h1>Know where the fabric goes.</h1>
+        <p>A simple daily log for a garment factory in Ethiopia. Write down the fabric issued and the garments finished. The tracker works out the yield and the output per worker, and points out the days that look wrong.</p>
+        <div class="row">
+          <a class="btn" href="#dashboard">See the dashboard</a>
+          <a class="btn ghost" href="#log">Add an entry</a>
+        </div>
+      </div>
+      <div id="homeBanner" class="note" hidden></div>
+      <div class="band">
+        <h2 id="homeTitle">The last 30 days</h2>
+        <div id="homeKpis" class="kpis"></div>
+      </div>
+      <div class="sec">
+        <h2>Why it exists</h2>
+        <div class="cols">
+          <div><h3>Fabric</h3><p>Fabric is bought and handed to production for every run. Nobody compared the metres issued with the garments that came out, so waste or loss could go unnoticed.</p></div>
+          <div><h3>Output</h3><p>Nobody counted how many pieces each line or worker finished. Productivity was judged by feel, which makes it hard to know whether a change in team size actually helped.</p></div>
+        </div>
+      </div>
+      <div class="sec">
+        <h2>How it works</h2>
+        <div class="cols">
+          <div><h3>1. Record</h3><p>At the end of the day, one person enters the fabric issued, the garments finished and the number of workers for each line.</p></div>
+          <div><h3>2. Compare</h3><p>The tracker divides the fabric the garments should have used by the fabric actually issued. That is the yield. It also shows garments per worker per day.</p></div>
+          <div><h3>3. Act</h3><p>A batch with a low yield, or a day with a sharp drop in output, shows up in a list. Someone can then go and find out why.</p></div>
+        </div>
+      </div>
+      <div class="sec">
+        <h2>The trial</h2>
+        <p class="prose">The plan is to log every new batch for four to six weeks next to the normal routine. One or two people enter the numbers, the numbers are reviewed every week, and the factory decides afterwards whether to keep using it. Before the busy season starts, the output numbers can be used to plan staffing.</p>
+        <p class="prose">Every change to an entry is kept on the History page, with the old and new values, so nothing is lost if a number is corrected by mistake.</p>
+      </div>
+      <div class="sec">
+        <h2>About the project</h2>
+        <p class="prose">This is an independent research project from 2026. It began as a study of one small garment manufacturer in Ethiopia that buys imported fabric and makes clothing for local and wholesale buyers. The company is not named here, to keep the business and its people private.</p>
+      </div>
+    </section>
+
+    <section id="v-dashboard" class="view" hidden>
+      <div class="head">
+        <h2 id="dashTitle">Dashboard</h2>
+        <label class="inline" for="range">Show
+          <select id="range" style="width:auto">
+            <option value="7">last 7 days</option>
+            <option value="30" selected>last 30 days</option>
+            <option value="all">all time</option>
+          </select>
+        </label>
+      </div>
+      <div id="exBanner" class="note" hidden></div>
+      <div id="kpis" class="kpis"></div>
+      <div class="two">
+        <section class="panel">
+          <h3>Fabric yield by day</h3>
+          <div id="chYield" class="chartbox"></div>
+          <p class="help">Yield is the fabric the finished garments should have used, divided by the fabric actually issued. 100% means exactly the standard. Points below the red line need a look.</p>
+        </section>
+        <section class="panel">
+          <h3>Garments per worker by day</h3>
+          <div id="chPw" class="chartbox"></div>
+          <p class="help">Garments finished divided by the number of workers on those lines that day. The dashed line is the average for this period.</p>
+        </section>
+      </div>
+      <section class="panel">
+        <h3>By worker or line</h3>
+        <div id="byLine" class="scroll"></div>
+      </section>
+      <section class="panel">
+        <h3>Entries to look at</h3>
+        <div id="flags"></div>
+      </section>
+    </section>
+
+    <section id="v-log" class="view" hidden>
+      <div class="head"><h2 id="formTitle">Add an entry</h2></div>
+      <section class="panel">
+        <form id="entryForm" novalidate>
+          <div class="grid2">
+            <div class="field"><label for="f-date">Date</label><input id="f-date" type="date" required></div>
+            <div class="field"><label for="f-batch">Batch or order</label><input id="f-batch" type="text" placeholder="B-014" autocomplete="off"><small>Optional, but it helps when you look back.</small></div>
+            <div class="field"><label for="f-product">Product</label><select id="f-product"></select></div>
+            <div class="field"><label for="f-line">Worker or line</label><select id="f-line"></select></div>
+            <div class="field"><label for="f-fabric">Fabric issued (metres)</label><input id="f-fabric" type="number" inputmode="decimal" min="0" step="0.1" placeholder="e.g. 480"></div>
+            <div class="field"><label for="f-pieces">Garments completed</label><input id="f-pieces" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 290"></div>
+            <div class="field"><label for="f-workers">Workers on this line that day</label><input id="f-workers" type="number" inputmode="numeric" min="1" step="1" placeholder="e.g. 18"></div>
+            <div class="field"><label for="f-by">Recorded by</label><input id="f-by" type="text" placeholder="Your name" autocomplete="name"><small>Kept in the history.</small></div>
+            <div class="field"><label for="f-note">Note</label><input id="f-note" type="text" placeholder="Optional" autocomplete="off"></div>
+          </div>
+          <div class="calc" aria-live="polite">
+            <div><div class="lab">Expected fabric</div><div class="v" id="p-exp">-</div></div>
+            <div><div class="lab">Fabric yield</div><div class="v" id="p-yld">-</div></div>
+            <div><div class="lab">Metres per garment</div><div class="v" id="p-per">-</div></div>
+            <div><div class="lab">Garments per worker</div><div class="v" id="p-pw">-</div></div>
+          </div>
+          <p id="formMsg" class="err" role="alert"></p>
+          <div class="row">
+            <button class="btn" id="saveBtn" type="submit">Save entry</button>
+            <button class="btn ghost" id="cancelEdit" type="button" hidden>Cancel editing</button>
+          </div>
+        </form>
+      </section>
+      <section class="panel">
+        <h3>Latest entries</h3>
+        <div id="recent" class="scroll"></div>
+      </section>
+    </section>
+
+    <section id="v-records" class="view" hidden>
+      <div class="head">
+        <h2>Records</h2>
+        <button class="btn ghost" id="exportBtn" type="button">Download CSV</button>
+      </div>
+      <div id="recNote" class="note" hidden></div>
+      <div class="filters">
+        <div class="field"><label for="r-q">Search</label><input id="r-q" type="search" placeholder="Batch, line or note"></div>
+        <div class="field"><label for="r-line">Worker or line</label><select id="r-line"></select></div>
+      </div>
+      <section class="panel"><div id="records" class="scroll"></div><div id="recMore" class="row" style="margin-top:12px" hidden><button class="btn ghost small" id="recMoreBtn" type="button">Show more</button></div></section>
+      <section id="csvBox" class="panel" hidden>
+        <h3>Copy your records</h3>
+        <p class="help" style="margin-top:0">Downloads are not available here. Copy this text and paste it into a file or into Excel.</p>
+        <textarea id="csvText" class="csv" readonly></textarea>
+        <div class="row" style="margin-top:10px"><button class="btn" id="copyCsv" type="button">Copy</button></div>
+      </section>
+    </section>
+
+    <section id="v-history" class="view" hidden>
+      <div class="head">
+        <h2>History</h2>
+        <label class="inline" for="h-filter">Show
+          <select id="h-filter" style="width:auto">
+            <option value="all">all changes</option>
+            <option value="added">added</option>
+            <option value="edited">edited</option>
+            <option value="deleted">deleted</option>
+            <option value="restored">restored</option>
+            <option value="setup">setup changes</option>
+          </select>
+        </label>
+      </div>
+      <div id="histBanner" class="note" hidden></div>
+      <section class="panel">
+        <div id="histList"></div>
+        <div id="histMore" class="row" style="margin-top:12px" hidden><button class="btn ghost small" id="histMoreBtn" type="button">Show more</button></div>
+      </section>
+    </section>
+
+    <section id="v-setup" class="view" hidden>
+      <div class="head"><h2>Setup</h2></div>
+      <section class="panel">
+        <h3>Products and fabric standard</h3>
+        <p class="help" style="margin-top:0">Metres of fabric one finished garment should use, including normal cutting waste. Measure a few good batches to get a real figure. The 1.6 here is only a starting value.</p>
+        <div id="prodRows" style="margin-top:12px"></div>
+        <button class="btn ghost small" id="addProd" type="button">Add a product</button>
+      </section>
+      <section class="panel">
+        <h3>Workers or lines</h3>
+        <p class="help" style="margin-top:0">The names that appear when you add an entry. Use a line name, a team, or a person. "Whole factory" is always available.</p>
+        <div id="lineRows" style="margin-top:12px"></div>
+        <button class="btn ghost small" id="addLine" type="button">Add a name</button>
+      </section>
+      <section class="panel">
+        <h3>When to raise a flag</h3>
+        <div class="grid2" style="margin-top:12px">
+          <div class="field"><label for="s-yield">Flag yield below (%)</label><input id="s-yield" type="number" min="1" max="100" step="1"><small>A starting value. Change it once you have seen some normal days.</small></div>
+          <div class="field"><label for="s-drop">Flag output drop of more than (%)</label><input id="s-drop" type="number" min="1" max="90" step="1"><small>Compared with the average of the previous 7 days that have entries.</small></div>
+        </div>
+      </section>
+      <div class="row"><button class="btn" id="saveSetup" type="button">Save setup</button><span id="setupMsg" class="muted"></span></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Fabric Output Tracker. An independent research project, 2026.</span>
+    <span id="footNote"></span>
+  </footer>
+</div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var pad2=function(n){return String(n).padStart(2,'0')};
+var ymd=function(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())};
+var parse=function(s){var p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])};
+var fmtDate=function(s){return parse(s).toLocaleDateString('en-GB',{day:'numeric',month:'short'})};
+var fmtWhen=function(ms){return new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})};
+var nf=function(n,d){d=d||0;return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})};
+var uid=function(p){return (p||'e')+Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
+
+var DEFAULTS={products:[{id:'p1',name:'Adult shirt',std:1.6}],lines:['Line 1','Line 2'],yieldWarn:95,dropWarn:15};
+var state={entries:[],history:[],config:JSON.parse(JSON.stringify(DEFAULTS)),kind:'local',ready:false,editId:null,legacy:null,range:'30',db:null,by:'',recLimit:60,histLimit:30};
+var LS={
+  get:function(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+  set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+};
+
+function makeSamples(){
+  var out=[],seed=11,rnd=function(){seed=(seed*9301+49297)%233280;return seed/233280};
+  var lines=[['Line 1',18],['Line 2',16]],batch=101,now=new Date();
+  for(var i=27;i>=0;i--){
+    var d=new Date(now);d.setDate(now.getDate()-i);
+    if(d.getDay()===0)continue;
+    lines.forEach(function(L,li){
+      var std=1.6,per=3.9+rnd()*0.7;
+      if(li===1&&(i===8||i===7))per-=1.8;
+      var pieces=Math.round(L[1]*per),y=0.99+(rnd()-0.5)*0.05;
+      if(li===1&&i===11)y=0.84;
+      out.push({id:'x'+out.length,date:ymd(d),batch:'B-'+(batch+Math.floor(out.length/2)),productId:'p1',product:'Adult shirt',std:std,
+        line:L[0],fabric:Math.round(pieces*std/y*10)/10,pieces:pieces,workers:L[1],note:'',by:'Supervisor',createdAt:out.length,example:true});
+    });
+  }
+  return out;
+}
+var SAMPLES=makeSamples();
+function makeSampleHistory(){
+  var h=[];
+  SAMPLES.forEach(function(e,i){
+    h.push({id:'sh'+i,at:parse(e.date).getTime()+17.5*3600000,action:'added',by:'Supervisor',entryId:e.id,label:labelOf(e),snap:e,example:true});
+  });
+  [10,31].forEach(function(i,k){
+    var e=SAMPLES[i];if(!e)return;
+    var oldF=Math.round((e.fabric+(k?-7.4:6.3))*10)/10,oc=e.pieces*e.std/oldF*100,nc=e.pieces*e.std/e.fabric*100;
+    var ch=[{f:'Fabric issued (m)',from:nf(oldF,1),to:nf(e.fabric,1)}];
+    if(Math.abs(oc-nc)>0.049)ch.push({f:'Yield',from:nf(oc,1)+'%',to:nf(nc,1)+'%'});
+    h.push({id:'se'+i,at:parse(e.date).getTime()+27*3600000,action:'edited',by:'Owner',entryId:e.id,label:labelOf(e),changes:ch,example:true});
+  });
+  var dup=SAMPLES[20];
+  if(dup){
+    var c=JSON.parse(JSON.stringify(dup));c.id='xd1';
+    h.push({id:'sd1',at:parse(dup.date).getTime()+19*3600000,action:'deleted',by:'Owner',entryId:'xd1',label:labelOf(c),snap:c,example:true});
+  }
+  return h;
+}
+var SAMPLE_HISTORY=makeSampleHistory();
+
+function normConfig(c){
+  c=c||{};var out=JSON.parse(JSON.stringify(DEFAULTS));
+  if(Array.isArray(c.products)&&c.products.length)out.products=c.products.filter(function(p){return p&&p.name}).map(function(p,i){return {id:p.id||('p'+(i+1)),name:String(p.name),std:Number(p.std)>0?Number(p.std):1.6}});
+  if(!out.products.length)out.products=JSON.parse(JSON.stringify(DEFAULTS.products));
+  if(Array.isArray(c.lines))out.lines=c.lines.map(String).filter(Boolean);
+  if(Number(c.yieldWarn)>0)out.yieldWarn=Number(c.yieldWarn);
+  if(Number(c.dropWarn)>0)out.dropWarn=Number(c.dropWarn);
+  return out;
+}
+function persistLocal(){LS.set('fot.entries',state.entries);LS.set('fot.history',state.history);LS.set('fot.config',state.config)}
+function initStore(){
+  var dbp;
+  try{dbp=(window.claude&&typeof window.claude.use==='function')?window.claude.use('db'):Promise.resolve(null)}catch(e){dbp=Promise.resolve(null)}
+  return Promise.resolve(dbp).catch(function(){return null}).then(function(db){
+    if(db){
+      state.db=db;state.kind='shared';
+      var timer=setTimeout(function(){if(!state.ready){$('#store').innerHTML='<b>Still trying</b> to reach shared data'}},10000);
+      db.collection('entries').onSnapshot(function(snap){
+        state.entries=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o});
+        state.ready=true;clearTimeout(timer);renderAll();
+      },function(err){state.ready=true;clearTimeout(timer);toast('Could not read the shared data ('+((err&&err.code)||'error')+')');renderAll()});
+      db.collection('history').onSnapshot(function(snap){
+        state.history=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o});renderHistory();
+      },function(){});
+      db.doc('config/main').onSnapshot(function(s){
+        if(s.exists){state.config=normConfig(s.data());fillSelects();renderSetup();renderAll()}
+      },function(){});
+    }else{
+      state.kind='local';
+      state.entries=LS.get('fot.entries')||[];
+      state.history=LS.get('fot.history')||[];
+      state.config=normConfig(LS.get('fot.config'));
+      state.ready=true;
+    }
+    renderStatus();fillSelects();renderSetup();renderAll();
+  });
+}
+function strip(e){var o={};Object.keys(e).forEach(function(k){if(k!=='id'&&e[k]!==undefined)o[k]=e[k]});return o}
+function writeEntry(e){
+  if(state.kind==='shared')return state.db.collection('entries').doc(e.id).set(strip(e));
+  var i=state.entries.findIndex(function(x){return x.id===e.id});
+  if(i>=0)state.entries[i]=e;else state.entries.push(e);
+  persistLocal();renderAll();return Promise.resolve();
+}
+function dropEntry(id){
+  if(state.kind==='shared')return state.db.collection('entries').doc(id).delete();
+  state.entries=state.entries.filter(function(x){return x.id!==id});persistLocal();renderAll();return Promise.resolve();
+}
+function writeHistory(h){
+  h.id=uid('h');h.at=Date.now();h.by=state.by||'';
+  if(state.kind==='shared')return state.db.collection('history').doc(h.id).set(strip(h));
+  state.history.push(h);persistLocal();renderHistory();return Promise.resolve();
+}
+function writeConfig(c){
+  if(state.kind==='shared')return state.db.doc('config/main').set(c);
+  state.config=c;persistLocal();return Promise.resolve();
+}
+
+function calc(e){
+  var exp=e.pieces*e.std;
+  return {expected:exp,yld:e.fabric>0?exp/e.fabric*100:null,per:e.pieces>0?e.fabric/e.pieces:null,pw:e.workers>0?e.pieces/e.workers:null};
+}
+function labelOf(e){return e.line+(e.batch?', batch '+e.batch:'')+', '+fmtDate(e.date)}
+function summaryOf(e){var c=calc(e);return nf(e.fabric,1)+' m of fabric, '+nf(e.pieces)+' garments, '+nf(e.workers)+' workers, yield '+(c.yld===null?'-':nf(c.yld,1)+'%')}
+var FIELDS=[
+  ['date','Date',function(v){return fmtDate(v)}],['batch','Batch'],['product','Product'],['line','Line'],
+  ['fabric','Fabric issued (m)',function(v){return nf(v,1)}],['pieces','Garments',function(v){return nf(v)}],['workers','Workers',function(v){return nf(v)}],['note','Note']
+];
+function diffEntry(a,b){
+  var out=[];
+  FIELDS.forEach(function(f){
+    var x=a[f[0]],y=b[f[0]];
+    if(String(x==null?'':x)!==String(y==null?'':y)){
+      var fm=f[2]||function(v){return v===''||v==null?'(empty)':String(v)};
+      out.push({f:f[1],from:fm(x),to:fm(y)});
+    }
+  });
+  var ca=calc(a),cb=calc(b);
+  if(ca.yld!==null&&cb.yld!==null&&Math.abs(ca.yld-cb.yld)>0.049)out.push({f:'Yield',from:nf(ca.yld,1)+'%',to:nf(cb.yld,1)+'%'});
+  return out;
+}
+function diffConfig(a,b){
+  var out=[];
+  if(a.yieldWarn!==b.yieldWarn)out.push({f:'Yield flag limit',from:a.yieldWarn+'%',to:b.yieldWarn+'%'});
+  if(a.dropWarn!==b.dropWarn)out.push({f:'Output drop limit',from:a.dropWarn+'%',to:b.dropWarn+'%'});
+  var la=a.lines.join(', ')||'(none)',lb=b.lines.join(', ')||'(none)';
+  if(la!==lb)out.push({f:'Workers or lines',from:la,to:lb});
+  var pf=function(c){return c.products.map(function(p){return p.name+' '+p.std+' m'}).join(', ')};
+  if(pf(a)!==pf(b))out.push({f:'Products',from:pf(a),to:pf(b)});
+  return out;
+}
+function agg(list){
+  var f=0,x=0,p=0,w=0;
+  list.forEach(function(e){f+=e.fabric;x+=e.pieces*e.std;p+=e.pieces;w+=e.workers});
+  return {fabric:f,expected:x,pieces:p,workers:w,yld:f>0?x/f*100:null,pw:w>0?p/w:null};
+}
+function byDay(list){
+  var m={};
+  list.forEach(function(e){
+    var a=m[e.date]||(m[e.date]={date:e.date,fabric:0,expected:0,pieces:0,workers:0});
+    a.fabric+=e.fabric;a.expected+=e.pieces*e.std;a.pieces+=e.pieces;a.workers+=e.workers;
+  });
+  return Object.keys(m).sort().map(function(k){return m[k]});
+}
+function startFor(range){
+  if(range==='all')return '';
+  var c=new Date();c.setDate(c.getDate()-(Number(range)-1));return ymd(c);
+}
+function visible(){
+  var real=state.entries.length>0;
+  return {list:real?state.entries:SAMPLES,isEx:!real};
+}
+function flagsFor(all,win,cut){
+  var cfg=state.config,out=[];
+  win.forEach(function(e){
+    var c=calc(e);
+    if(c.yld!==null&&c.yld<cfg.yieldWarn){
+      out.push({date:e.date,kind:'Yield',text:e.line+(e.batch?', batch '+e.batch:'')+': yield '+nf(c.yld,1)+'%, about '+nf(e.fabric-c.expected,1)+' m more fabric than expected.'});
+    }
+  });
+  var days=byDay(all);
+  days.forEach(function(d,i){
+    if(d.date<cut||d.workers<=0)return;
+    var prev=days.slice(Math.max(0,i-7),i).filter(function(x){return x.workers>0});
+    if(prev.length<3)return;
+    var base=prev.reduce(function(s,x){return s+x.pieces/x.workers},0)/prev.length,now=d.pieces/d.workers;
+    if(now<base*(1-cfg.dropWarn/100)){
+      out.push({date:d.date,kind:'Output',text:'Garments per worker fell to '+nf(now,1)+', from a recent average of '+nf(base,1)+' ('+nf((1-now/base)*100,0)+'% lower).'});
+    }
+  });
+  return out.sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
+}
+
+function niceStep(r){var p=Math.pow(10,Math.floor(Math.log10(r))),f=r/p;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
+function lineChart(box,pts,o){
+  if(!pts.length){box.innerHTML='<p class="muted">No entries in this period.</p>';return}
+  var W=Math.max(280,box.clientWidth||600),H=230,L=48,R=18,T=16,B=30,iw=W-L-R,ih=H-T-B;
+  var ys=pts.map(function(p){return p.y});
+  if(o.ref!=null)ys.push(o.ref);
+  if(o.avg!=null)ys.push(o.avg);
+  var lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys),span=(hi-lo)||Math.abs(hi)*0.1||1;
+  lo-=span*0.2;hi+=span*0.25;
+  if(o.floor!=null)lo=Math.max(o.floor,lo);
+  var step=niceStep((hi-lo)/4);lo=Math.floor(lo/step)*step;hi=Math.ceil(hi/step)*step;
+  var t0=parse(pts[0].d).getTime(),t1=parse(pts[pts.length-1].d).getTime();
+  var X=function(d){return L+(t1===t0?iw/2:(parse(d).getTime()-t0)/(t1-t0)*iw)};
+  var Y=function(v){return T+(hi-v)/(hi-lo)*ih};
+  var g='',n=Math.round((hi-lo)/step),i;
+  for(i=0;i<=n;i++){
+    var v=lo+i*step,y=Y(v);
+    g+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'"/><text class="ax" x="'+(L-8)+'" y="'+(y+4)+'" text-anchor="end">'+nf(v,step<1?1:0)+(o.unit||'')+'</text>';
+  }
+  var k=Math.min(5,pts.length);
+  for(i=0;i<k;i++){
+    var idx=k===1?0:Math.round(i*(pts.length-1)/(k-1)),x=X(pts[idx].d);
+    g+='<text class="ax" x="'+x+'" y="'+(H-8)+'" text-anchor="'+(i===0&&k>1?'start':i===k-1&&k>1?'end':'middle')+'">'+fmtDate(pts[idx].d)+'</text>';
+  }
+  if(o.ref!=null){var yr=Y(o.ref);g+='<line class="ref" x1="'+L+'" x2="'+(W-R)+'" y1="'+yr+'" y2="'+yr+'"/><text class="reflab" x="'+(W-R)+'" y="'+(yr-5)+'" text-anchor="end">limit '+nf(o.ref,0)+(o.unit||'')+'</text>'}
+  if(o.avg!=null){var ya=Y(o.avg);g+='<line class="avg" x1="'+L+'" x2="'+(W-R)+'" y1="'+ya+'" y2="'+ya+'"/><text class="avglab" x="'+(L+6)+'" y="'+(ya-5)+'" text-anchor="start">average '+nf(o.avg,1)+'</text>'}
+  var d='M'+pts.map(function(p){return X(p.d).toFixed(1)+' '+Y(p.y).toFixed(1)}).join(' L');
+  g+='<path class="ln" d="'+d+'"/>';
+  pts.forEach(function(p,j){
+    var low=o.ref!=null&&p.y<o.ref;
+    g+='<circle class="pt'+(low?' low':'')+'" cx="'+X(p.d)+'" cy="'+Y(p.y)+'" r="'+(j===pts.length-1?5:3.5)+'"><title>'+fmtDate(p.d)+': '+nf(p.y,1)+(o.unit||'')+'</title></circle>';
+  });
+  var last=pts[pts.length-1];
+  g+='<text class="val" x="'+Math.min(X(last.d),W-R)+'" y="'+(Y(last.y)-10)+'" text-anchor="end">'+nf(last.y,1)+(o.unit||'')+'</text>';
+  box.innerHTML='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label)+'">'+g+'</svg>';
+}
+
+function pill(c,t){return '<span class="pill '+c+'">'+t+'</span>'}
+function renderStatus(){
+  var s=$('#store');
+  if(state.kind==='shared'){s.innerHTML='<b>Shared</b> and live';s.title='Everyone with access sees the same entries.'}
+  else{s.innerHTML='Saved on <b>this device</b>';s.title='Entries are kept in this browser. Use Download CSV on the Records page to keep a copy.'}
+}
+function banner(el,isEx,text){
+  if(isEx){el.hidden=false;el.textContent=state.ready?text:'Loading the data. Sample numbers are shown for now.'}
+  else el.hidden=true;
+}
+var SAMPLE_TEXT='Sample data. These numbers are made up to show how the tracker works. They disappear as soon as the first real entry is added.';
+function kpiHtml(a,fl){
+  var cfg=state.config;
+  var yp=a.yld===null?'':a.yld>=cfg.yieldWarn?pill('good','On target'):a.yld>=cfg.yieldWarn-3?pill('warn','Slightly low'):pill('bad','Low');
+  var kp=function(lab,num,sub){return '<div class="kpi"><div class="lab">'+lab+'</div><div class="num">'+num+'</div><div class="sub">'+sub+'</div></div>'};
+  return kp('Fabric yield',a.yld===null?'-':nf(a.yld,1)+'%',yp+' <span>Target '+nf(cfg.yieldWarn,0)+'% or more</span>')+
+    kp('Garments completed',nf(a.pieces),nf(a.fabric)+' m of fabric issued')+
+    kp('Output per worker',a.pw===null?'-':nf(a.pw,1),'garments per worker per day')+
+    kp('Entries to look at',nf(fl.length),fl.length?pill('warn','See the dashboard'):pill('good','None'));
+}
+function renderHome(){
+  var v=visible(),cut=startFor('30'),win=cut?v.list.filter(function(e){return e.date>=cut}):v.list;
+  banner($('#homeBanner'),v.isEx,SAMPLE_TEXT);
+  $('#homeKpis').innerHTML=kpiHtml(agg(win),flagsFor(v.list,win,cut));
+  $('#footNote').textContent=v.isEx?'Showing sample data.':'';
+}
+function renderDash(){
+  var v=visible(),all=v.list,cut=startFor(state.range),win=cut?all.filter(function(e){return e.date>=cut}):all;
+  var cfg=state.config,a=agg(win),fl=flagsFor(all,win,cut);
+  var names={'7':'the last 7 days','30':'the last 30 days','all':'all time'};
+  $('#dashTitle').textContent='How '+names[state.range]+' went';
+  banner($('#exBanner'),v.isEx,SAMPLE_TEXT);
+  $('#kpis').innerHTML=kpiHtml(a,fl);
+  var days=byDay(win);
+  lineChart($('#chYield'),days.filter(function(d){return d.fabric>0}).map(function(d){return {d:d.date,y:d.expected/d.fabric*100}}),
+    {ref:cfg.yieldWarn,unit:'%',label:'Line chart of fabric yield by day, with a limit at '+cfg.yieldWarn+' percent'});
+  lineChart($('#chPw'),days.filter(function(d){return d.workers>0}).map(function(d){return {d:d.date,y:d.pieces/d.workers}}),
+    {avg:a.pw,floor:0,label:'Line chart of garments per worker by day'});
+  var groups={};
+  win.forEach(function(e){(groups[e.line]=groups[e.line]||[]).push(e)});
+  var gn=Object.keys(groups).sort();
+  $('#byLine').innerHTML=gn.length?
+    '<table class="tbl"><thead><tr><th>Worker or line</th><th class="n">Garments</th><th class="n">Per worker per day</th><th class="n">Fabric issued (m)</th><th class="n">Yield</th></tr></thead><tbody>'+
+    gn.map(function(n){var g=agg(groups[n]);return '<tr><td>'+esc(n)+'</td><td class="n">'+nf(g.pieces)+'</td><td class="n">'+(g.pw===null?'-':nf(g.pw,1))+'</td><td class="n">'+nf(g.fabric)+'</td><td class="n">'+(g.yld===null?'-':nf(g.yld,1)+'%')+'</td></tr>'}).join('')+
+    '</tbody></table>':'<p class="muted">No entries in this period.</p>';
+  $('#flags').innerHTML=fl.length?
+    '<ul class="flags">'+fl.slice(0,12).map(function(f){return '<li><span class="d">'+fmtDate(f.date)+'</span><span class="k">'+f.kind+'</span><span>'+esc(f.text)+'</span></li>'}).join('')+'</ul>'+(fl.length>12?'<p class="help">Showing the latest 12 of '+fl.length+'.</p>':''):
+    '<p class="muted">Nothing to flag in this period.</p>';
+}
+function rowHtml(e,withActs){
+  var c=calc(e),cfg=state.config,low=c.yld!==null&&c.yld<cfg.yieldWarn;
+  return '<tr class="'+(low?'flag':'')+'"><td>'+fmtDate(e.date)+'</td><td>'+esc(e.batch||'')+'</td><td>'+esc(e.product)+'</td><td>'+esc(e.line)+'</td>'+
+    '<td class="n">'+nf(e.fabric,1)+'</td><td class="n">'+nf(e.pieces)+'</td><td class="n">'+nf(e.workers)+'</td>'+
+    '<td class="n">'+(c.yld===null?'-':nf(c.yld,1)+'%')+'</td><td class="n">'+(c.pw===null?'-':nf(c.pw,1))+'</td>'+
+    '<td>'+esc(e.by||'')+'</td><td>'+esc(e.note||'')+'</td>'+
+    (withActs?'<td class="acts"><button class="btn ghost small" data-edit="'+esc(e.id)+'" type="button">Edit</button> <button class="btn danger small" data-del="'+esc(e.id)+'" type="button">Delete</button></td>':'')+'</tr>';
+}
+var HEAD='<th>Date</th><th>Batch</th><th>Product</th><th>Line</th><th class="n">Fabric (m)</th><th class="n">Garments</th><th class="n">Workers</th><th class="n">Yield</th><th class="n">Per worker</th><th>By</th><th>Note</th>';
+function sorted(list){return list.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:(b.createdAt||0)-(a.createdAt||0)})}
+function fillLineFilter(list){
+  var sel=$('#r-line'),cur=sel.value,names={};
+  list.forEach(function(e){names[e.line]=1});
+  sel.innerHTML='<option value="">All</option>'+Object.keys(names).sort().map(function(n){return '<option>'+esc(n)+'</option>'}).join('');
+  if(cur&&names[cur])sel.value=cur;
+}
+function renderRecords(){
+  var v=visible(),n=$('#recNote');
+  if(v.isEx){n.hidden=false;n.textContent='These rows are sample data. Add your first entry and they go away.'}
+  else if(state.kind==='local'){n.hidden=false;n.textContent='Entries are saved in this browser only. Download a CSV now and then to keep a copy.'}
+  else n.hidden=true;
+  fillLineFilter(v.list);
+  var q=$('#r-q').value.trim().toLowerCase(),ln=$('#r-line').value;
+  var list=sorted(v.list).filter(function(e){
+    if(ln&&e.line!==ln)return false;
+    if(!q)return true;
+    return [e.batch,e.line,e.note,e.product,e.by].join(' ').toLowerCase().indexOf(q)>=0;
+  });
+  var shown=list.slice(0,state.recLimit);
+  $('#records').innerHTML=shown.length?
+    '<table class="tbl"><thead><tr>'+HEAD+(v.isEx?'':'<th></th>')+'</tr></thead><tbody>'+shown.map(function(e){return rowHtml(e,!v.isEx)}).join('')+'</tbody></table>':
+    '<p class="muted">No entries match.</p>';
+  $('#recMore').hidden=list.length<=shown.length;
+  var real=sorted(state.entries).slice(0,5);
+  $('#recent').innerHTML=real.length?'<table class="tbl"><thead><tr>'+HEAD+'</tr></thead><tbody>'+real.map(function(e){return rowHtml(e,false)}).join('')+'</tbody></table>':'<p class="muted">Nothing saved yet. Your first entry will show here.</p>';
+}
+var ACTION_PILL={added:['good','Added'],edited:['warn','Edited'],deleted:['bad','Deleted'],restored:['plain','Restored'],setup:['plain','Setup']};
+function renderHistory(){
+  var isEx=!state.entries.length&&!state.history.length;
+  banner($('#histBanner'),isEx,'Sample history. It shows what the log looks like once people start adding and correcting entries.');
+  var src=isEx?SAMPLE_HISTORY:state.history,f=$('#h-filter').value;
+  var list=src.filter(function(h){return f==='all'||h.action===f}).sort(function(a,b){return b.at-a.at});
+  var shown=list.slice(0,state.histLimit);
+  if(!shown.length){$('#histList').innerHTML='<p class="muted">'+(src.length?'Nothing matches this filter.':'No changes yet. Everything you add, edit or delete will be listed here.')+'</p>';$('#histMore').hidden=true;return}
+  $('#histList').innerHTML='<ul class="hist">'+shown.map(function(h){
+    var ap=ACTION_PILL[h.action]||['plain',esc(h.action)],body='';
+    if(h.changes&&h.changes.length){
+      body='<details><summary>Show what changed</summary><table class="tbl ch"><thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead><tbody>'+
+        h.changes.map(function(c){return '<tr><td>'+esc(c.f)+'</td><td class="from">'+esc(c.from)+'</td><td class="to">'+esc(c.to)+'</td></tr>'}).join('')+'</tbody></table></details>';
+    }else if(h.snap){
+      body='<div class="snap">'+esc(summaryOf(h.snap))+(h.snap.note?'. Note: '+esc(h.snap.note):'')+'</div>';
+    }
+    var rid=h.snap?(h.snap.id||h.entryId):'';
+    var canRestore=h.action==='deleted'&&h.snap&&!isEx&&!state.entries.some(function(e){return e.id===rid});
+    return '<li><div class="hmeta"><span class="when">'+fmtWhen(h.at)+'</span>'+pill(ap[0],ap[1])+'<span>'+(h.by?'by '+esc(h.by):'name not given')+'</span></div>'+
+      '<div class="hlabel">'+esc(h.label||'Setup')+'</div>'+body+
+      (canRestore?'<div><button class="btn ghost small" data-restore="'+esc(h.id)+'" type="button">Restore this entry</button></div>':'')+'</li>';
+  }).join('')+'</ul>';
+  $('#histMore').hidden=list.length<=shown.length;
+}
+function renderAll(){renderHome();renderDash();renderRecords();renderHistory()}
+
+function fillSelects(){
+  var ps=$('#f-product'),ls=$('#f-line'),pv=ps.value,lv=ls.value;
+  ps.innerHTML=state.config.products.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+' ('+nf(p.std,2)+' m)</option>'}).join('');
+  ls.innerHTML=state.config.lines.concat(['Whole factory']).map(function(n){return '<option>'+esc(n)+'</option>'}).join('');
+  if(pv&&[].some.call(ps.options,function(o){return o.value===pv}))ps.value=pv;
+  if(lv&&[].some.call(ls.options,function(o){return o.value===lv}))ls.value=lv;
+}
+function formStd(){
+  var id=$('#f-product').value;
+  if(id==='legacy'&&state.legacy)return {id:'legacy',name:state.legacy.product,std:state.legacy.std};
+  return state.config.products.filter(function(x){return x.id===id})[0]||state.config.products[0];
+}
+function readForm(){
+  var p=formStd();
+  return {date:$('#f-date').value,batch:$('#f-batch').value.trim(),productId:p.id,product:p.name,std:p.std,line:$('#f-line').value,
+    fabric:parseFloat($('#f-fabric').value),pieces:parseInt($('#f-pieces').value,10),workers:parseInt($('#f-workers').value,10),note:$('#f-note').value.trim()};
+}
+function updatePreview(){
+  var e=readForm(),c=(e.fabric>0&&e.pieces>=0)?calc(e):null;
+  $('#p-exp').textContent=c?nf(c.expected,1)+' m':'-';
+  $('#p-yld').textContent=c&&c.yld!==null?nf(c.yld,1)+'%':'-';
+  $('#p-per').textContent=c&&c.per!==null?nf(c.per,2)+' m':'-';
+  $('#p-pw').textContent=e.workers>0&&e.pieces>=0?nf(e.pieces/e.workers,1):'-';
+}
+function resetForm(keepDate){
+  if(!keepDate)$('#f-date').value=ymd(new Date());
+  ['f-batch','f-fabric','f-pieces','f-note'].forEach(function(id){$('#'+id).value=''});
+  $('#formMsg').textContent='';updatePreview();
+}
+function endEdit(){
+  state.editId=null;state.legacy=null;
+  var lo=$('#f-product').querySelector('option[value="legacy"]');if(lo)lo.remove();
+  $('#formTitle').textContent='Add an entry';$('#saveBtn').textContent='Save entry';$('#cancelEdit').hidden=true;
+  resetForm(false);
+}
+function startEdit(id){
+  var e=state.entries.filter(function(x){return x.id===id})[0];if(!e)return;
+  state.editId=id;fillSelects();
+  var ps=$('#f-product');
+  if(state.config.products.some(function(p){return p.id===e.productId&&p.std===e.std}))ps.value=e.productId;
+  else{state.legacy={product:e.product,std:e.std};var o=document.createElement('option');o.value='legacy';o.textContent=e.product+' ('+nf(e.std,2)+' m, saved)';ps.appendChild(o);ps.value='legacy'}
+  var ls=$('#f-line');
+  if(![].some.call(ls.options,function(o){return o.value===e.line})){var o2=document.createElement('option');o2.textContent=e.line;ls.appendChild(o2)}
+  ls.value=e.line;
+  $('#f-date').value=e.date;$('#f-batch').value=e.batch||'';$('#f-fabric').value=e.fabric;$('#f-pieces').value=e.pieces;$('#f-workers').value=e.workers;$('#f-note').value=e.note||'';
+  $('#formTitle').textContent='Edit this entry';$('#saveBtn').textContent='Save changes';$('#cancelEdit').hidden=false;
+  updatePreview();location.hash='log';
+}
+function submitForm(ev){
+  ev.preventDefault();
+  var e=readForm(),msg=$('#formMsg');
+  if(!e.date){msg.textContent='Choose a date.';return}
+  if(!(e.fabric>0)){msg.textContent='Enter the metres of fabric issued. It must be more than 0.';return}
+  if(isNaN(e.pieces)||e.pieces<0){msg.textContent='Enter how many garments were completed.';return}
+  if(!(e.workers>=1)){msg.textContent='Enter how many workers were on this line that day (at least 1).';return}
+  msg.textContent='';
+  var editing=state.editId,old=editing?state.entries.filter(function(x){return x.id===editing})[0]:null;
+  e.id=editing||uid('e');e.createdAt=old&&old.createdAt?old.createdAt:Date.now();e.by=old?(old.by||''):(state.by||'');
+  var changes=old?diffEntry(old,e):null;
+  if(old&&!changes.length){toast('Nothing was changed.');endEdit();location.hash='records';return}
+  $('#saveBtn').disabled=true;
+  writeEntry(e).then(function(){
+    return writeHistory(old?{action:'edited',entryId:e.id,label:labelOf(e),changes:changes}:{action:'added',entryId:e.id,label:labelOf(e),snap:strip(e)});
+  }).then(function(){
+    var c=calc(e);
+    toast('Saved. Yield '+(c.yld===null?'-':nf(c.yld,1)+'%')+'.');
+    if(editing){endEdit();location.hash='records'}else{resetForm(true);$('#f-batch').focus()}
+  }).catch(function(err){
+    msg.textContent='Could not save: '+((err&&err.message)||'unknown problem')+'. Check your connection and try again.';
+  }).then(function(){$('#saveBtn').disabled=false});
+}
+
+var armed={};
+function onRecordsClick(ev){
+  var t=ev.target.closest('button');if(!t)return;
+  if(t.dataset.edit){startEdit(t.dataset.edit);return}
+  if(t.dataset.del){
+    var id=t.dataset.del;
+    if(!armed[id]){
+      armed[id]=setTimeout(function(){delete armed[id];t.textContent='Delete';t.classList.remove('armed')},3500);
+      t.textContent='Press again to delete';t.classList.add('armed');return;
+    }
+    clearTimeout(armed[id]);delete armed[id];
+    var e=state.entries.filter(function(x){return x.id===id})[0];if(!e)return;
+    dropEntry(id).then(function(){return writeHistory({action:'deleted',entryId:id,label:labelOf(e),snap:strip(e)})})
+      .then(function(){toast('Entry deleted. You can bring it back from the History page.')})
+      .catch(function(){toast('Could not delete. Try again.')});
+  }
+}
+function onHistoryClick(ev){
+  var t=ev.target.closest('[data-restore]');if(!t)return;
+  var h=state.history.filter(function(x){return x.id===t.dataset.restore})[0];
+  if(!h||!h.snap)return;
+  var rid=h.snap.id||h.entryId;
+  if(state.entries.some(function(e){return e.id===rid})){toast('This entry is already back in the records.');return}
+  var e=JSON.parse(JSON.stringify(h.snap));e.id=rid;e.createdAt=e.createdAt||Date.now();
+  writeEntry(e).then(function(){return writeHistory({action:'restored',entryId:e.id,label:labelOf(e),snap:strip(e)})})
+    .then(function(){toast('Entry restored.');renderHistory()})
+    .catch(function(){toast('Could not restore. Try again.')});
+}
+function csvCell(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function buildCsv(){
+  var head=['date','batch','product','line','fabric_issued_m','garments_completed','workers','expected_fabric_m','yield_percent','recorded_by','note'];
+  var rows=sorted(state.entries).reverse().map(function(e){
+    var c=calc(e);
+    return [e.date,e.batch,e.product,e.line,e.fabric,e.pieces,e.workers,Math.round(c.expected*10)/10,c.yld===null?'':Math.round(c.yld*10)/10,e.by,e.note].map(csvCell).join(',');
+  });
+  return [head.join(',')].concat(rows).join('\n');
+}
+function exportCsv(){
+  if(!state.entries.length){toast('There are no entries to download yet.');return}
+  var csv=buildCsv(),dlp;
+  try{dlp=(window.claude&&typeof window.claude.use==='function')?window.claude.use('downloads'):Promise.resolve(null)}catch(e){dlp=Promise.resolve(null)}
+  Promise.resolve(dlp).catch(function(){return null}).then(function(dl){
+    if(dl){
+      return dl.save({filename:'fabric-log-'+ymd(new Date())+'.csv',data:csv}).then(function(){toast('File saved.')}).catch(function(err){
+        if(err&&err.code==='declined')return;
+        showCsv(csv);
+      });
+    }
+    showCsv(csv);
+  });
+}
+function showCsv(csv){$('#csvBox').hidden=false;$('#csvText').value=csv;$('#csvText').focus();$('#csvText').select()}
+
+function prodRow(p){
+  var d=document.createElement('div');d.className='listrow';d.dataset.id=p.id||'';
+  d.innerHTML='<input type="text" class="pn" aria-label="Product name" placeholder="Product name" value="'+esc(p.name)+'"><input type="number" class="ps" aria-label="Metres per garment" min="0.1" step="0.05" value="'+esc(p.std)+'"><button type="button" class="btn danger small" data-rm>Remove</button>';
+  return d;
+}
+function lineRow(n){
+  var d=document.createElement('div');d.className='listrow one';
+  d.innerHTML='<input type="text" class="ln2" aria-label="Worker or line name" placeholder="Name" value="'+esc(n)+'"><button type="button" class="btn danger small" data-rm>Remove</button>';
+  return d;
+}
+function renderSetup(){
+  var pr=$('#prodRows'),lr=$('#lineRows');pr.innerHTML='';lr.innerHTML='';
+  state.config.products.forEach(function(p){pr.appendChild(prodRow(p))});
+  state.config.lines.forEach(function(n){lr.appendChild(lineRow(n))});
+  $('#s-yield').value=state.config.yieldWarn;$('#s-drop').value=state.config.dropWarn;
+}
+function saveSetup(){
+  var products=[].map.call($('#prodRows').children,function(r,i){return {id:r.dataset.id||('p'+Date.now().toString(36)+i),name:$('.pn',r).value.trim(),std:parseFloat($('.ps',r).value)}}).filter(function(p){return p.name&&p.std>0});
+  var lines=[].map.call($('#lineRows').children,function(r){return $('.ln2',r).value.trim()}).filter(Boolean);
+  var m=$('#setupMsg');
+  if(!products.length){m.textContent='Keep at least one product with a name and a fabric figure.';return}
+  var cfg=normConfig({products:products,lines:lines,yieldWarn:parseFloat($('#s-yield').value),dropWarn:parseFloat($('#s-drop').value)});
+  var changes=diffConfig(state.config,cfg);
+  m.textContent='Saving…';
+  writeConfig(cfg).then(function(){
+    state.config=cfg;
+    return changes.length?writeHistory({action:'setup',label:'Setup changed',changes:changes}):null;
+  }).then(function(){fillSelects();updatePreview();renderAll();m.textContent='Saved.';setTimeout(function(){m.textContent=''},2500)})
+    .catch(function(err){m.textContent='Could not save: '+((err&&err.message)||'try again')});
+}
+
+var toastTimer;
+function toast(t){var el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.hidden=true},3800)}
+var VIEWS=['home','dashboard','log','records','history','setup'];
+function route(){
+  var h=location.hash.slice(1);if(VIEWS.indexOf(h)<0)h='home';
+  VIEWS.forEach(function(v){
+    $('#v-'+v).hidden=v!==h;var a=$('#t-'+v);
+    if(v===h)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+  });
+  if(h==='dashboard')renderDash();
+  window.scrollTo(0,0);
+}
+
+state.by=LS.get('fot.by')||'';
+$('#f-by').value=state.by;
+$('#f-date').value=ymd(new Date());
+fillSelects();renderSetup();renderAll();updatePreview();route();
+window.addEventListener('hashchange',route);
+$('#range').addEventListener('change',function(e){state.range=e.target.value;renderDash()});
+$('#entryForm').addEventListener('submit',submitForm);
+$('#entryForm').addEventListener('input',updatePreview);
+$('#f-by').addEventListener('input',function(e){state.by=e.target.value.trim();LS.set('fot.by',state.by)});
+$('#cancelEdit').addEventListener('click',function(){endEdit();location.hash='records'});
+$('#records').addEventListener('click',onRecordsClick);
+$('#histList').addEventListener('click',onHistoryClick);
+$('#r-q').addEventListener('input',function(){state.recLimit=60;renderRecords()});
+$('#r-line').addEventListener('change',function(){state.recLimit=60;renderRecords()});
+$('#recMoreBtn').addEventListener('click',function(){state.recLimit+=60;renderRecords()});
+$('#h-filter').addEventListener('change',function(){state.histLimit=30;renderHistory()});
+$('#histMoreBtn').addEventListener('click',function(){state.histLimit+=30;renderHistory()});
+$('#exportBtn').addEventListener('click',exportCsv);
+$('#copyCsv').addEventListener('click',function(){
+  var t=$('#csvText');
+  (navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(function(){toast('Copied.')}).catch(function(){t.focus();t.select();toast('Press Ctrl+C to copy.')});
+});
+$('#addProd').addEventListener('click',function(){$('#prodRows').appendChild(prodRow({id:'',name:'',std:1.6}))});
+$('#addLine').addEventListener('click',function(){$('#lineRows').appendChild(lineRow(''))});
+$('#v-setup').addEventListener('click',function(e){var b=e.target.closest('[data-rm]');if(b)b.parentNode.remove()});
+$('#saveSetup').addEventListener('click',saveSetup);
+var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){if(!$('#v-dashboard').hidden)renderDash()},150)});
+initStore();
+})();
+</script>
+
+</body></html>
